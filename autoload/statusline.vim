@@ -30,27 +30,22 @@ def GetSectionContent(self: dict<any>, is_active: bool, is_left: bool, section: 
     return result
 enddef
 
-g:oneline_config.GetSectionContent_active_left = function(GetSectionContent, [g:oneline_config, v:true, v:true])
-g:oneline_config.GetSectionContent_active_right = function(GetSectionContent, [g:oneline_config, v:true, v:false])
-g:oneline_config.GetSectionContent_inactive_left = function(GetSectionContent, [g:oneline_config, v:false, v:true])
-g:oneline_config.GetSectionContent_inactive_right = function(GetSectionContent, [g:oneline_config, v:false, v:false])
+g:oneline.GetSectionContent = function(GetSectionContent, [g:oneline])
 
 export def Statusline(self: dict<any>, active: bool): string
-    var func_name: string = join([
-        'g:oneline_config.GetSectionContent',
-        active ? 'active' : 'inactive'
-    ], '_')
+    var func_name = 'g:oneline.GetSectionContent'
+    var is_active: string = active ? '1' : '0'
     var result: string = [['a', 'b', 'c'], ['x', 'y', 'z']]
         -> map((i, half): string => half
             -> map((_, sec): string => i == 0
                 ? join([
                 '%(', 
-                '%{%' .. func_name .. '_left("' .. sec .. '")%}',
+                '%{%' .. func_name .. '(' .. is_active .. ', 1, "' .. sec .. '")%}',
                 self.separator.left .. '%)'
                 ], self.separator.margin)
                 : join([
                 '%(' .. self.separator.right,
-                '%{%' .. func_name .. '_right("' .. sec .. '")%}',
+                '%{%' .. func_name .. '(' .. is_active .. ', 0, "' .. sec .. '")%}',
                 '%)'
                 ], self.separator.margin))
             -> join(''))

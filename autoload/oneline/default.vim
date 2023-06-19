@@ -1,7 +1,7 @@
 vim9script
 
 def Mode_Content(): string
-    const mode_map: dict<string> = g:oneline_config.mode_map
+    const mode_map: dict<string> = g:oneline.mode_map
     var mode_char: string = mode(1)
     mode_char = has_key(mode_map, mode_char) 
         ? mode_char 
@@ -16,8 +16,8 @@ enddef
 export final preset: dict<any> = {
     active: {
         oneline_a: ['mode', 'paste'],
-        oneline_b: ['filename'],
-        oneline_c: ['readonly', 'modified'],
+        oneline_b: [],
+        oneline_c: ['filename', 'readonly'],
         oneline_x: ['encoding', 'fileformat', 'filetype'],
         oneline_y: ['percent'],
         oneline_z: ['lineinfo']
@@ -25,7 +25,7 @@ export final preset: dict<any> = {
     inactive: {
         oneline_a: [],
         oneline_b: ['filename'],
-        oneline_c: ['readonly', 'modified'],
+        oneline_c: ['readonly'],
         oneline_x: ['percent'],
         oneline_y: [],
         oneline_z: ['time']
@@ -40,15 +40,15 @@ export final preset: dict<any> = {
             hlgroup: ''
         },
         filename: {
-            content: '%t',
+            content: '%t%( %m%)',
             hlgroup: ''
         },
         readonly: {
-            content: () => &readonly ? '%R' : '',
+            content: () => &readonly ? '' : '',
             hlgroup: ''
         },
         modified: {
-            content: () => &modified || !&modifiable ? '%M' : '',
+            content: () => &modified || !&modifiable ? '%m' : '',
             hlgroup: ''
         },
         encoding: {
@@ -60,7 +60,7 @@ export final preset: dict<any> = {
             hlgroup: ''
         },
         filetype: {
-            content: &filetype,
+            content: '%y',
             hlgroup: ''
         },
         percent: {

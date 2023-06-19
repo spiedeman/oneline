@@ -33,8 +33,8 @@ def Init()
     # 更改初始化状态
     status.initialized = true
     # 新建/获取全局配置
-    if !exists('g:oneline_config')
-        g:oneline_config = {}
+    if !exists('g:oneline')
+        g:oneline = {}
     endif
     # 合并插件自定义配置
     MergeConfig()
@@ -43,8 +43,8 @@ enddef
 
 def MergeConfig(): dict<any>
     # 原地修改
-    g:oneline_config->extend(default.preset, 'keep')
-    return g:oneline_config
+    g:oneline->extend(default.preset, 'keep')
+    return g:oneline
 enddef
 
 
@@ -55,7 +55,6 @@ export def Update()
     endif
     var win_id = winnr()
     var win_count = winnr('$')
-    # g:oneline_config.Statusline = function(SL.OldStatusline, [MergeConfig()])
     # 为当前窗口和其它窗口设置不同的状态栏
     var Statusline = function(SL.Statusline, [MergeConfig()])
     var statusline: list<string> = win_count == 1 && win_id > 0
@@ -65,10 +64,7 @@ export def Update()
         setwinvar(i, '&statusline', i == win_id 
             ? statusline[0] 
             : statusline[1])
-            # ? '%{%g:oneline_config.Statusline(v:true)%}' 
-            # : '%{%g:oneline_config.Statusline(v:false)%}')
     endfor
-    # echom statusline
 enddef
 
 def AutoCmd()
