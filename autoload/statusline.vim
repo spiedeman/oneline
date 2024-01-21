@@ -2,78 +2,138 @@ vim9script
 
 import autoload './colorscheme.vim' as Color
 
-def GetSectionHighlightName(section: string): string
-    return ''
-enddef
+class StatusLine 
+    var sections: list<string> = [['a', 'z'], ['b', 'y'], ['c', 'x']]
+    var section_content: dict<string> = {}
+    var separator_valid: dict<string> = {}
+    var separator_content: dict<string> = {}
+    var status_line: string = ''
+    var count: number = 0
 
-def GetComponentContent(component: dict<any>, name: string): string
-    var content_type: any = type(component.content)
-    return content_type == v:t_string
-        ? component.content
-        : content_type == v:t_func
-        ? component.content()
-        : ' '
-enddef
+    def new()
+        for sec in this.sections -> flattennew()
+            if !has_key(this.section_content, sec)
+                this.section_content[sec] = ''
+                this.separator_content[sec] = ''
+            endif
+        endfor
+    enddef
 
-def GetSectionContent(self: dict<any>, is_active: bool, is_left: bool, section: string): string
-    var active_type: string = is_active ? 'active' : 'inactive'
-    var sec_name: string = 'oneline_' .. section
-    var submargin: string = self.subseparator.margin
-    var subseparator: string = is_left ? self.subseparator.left : self.subseparator.right
-    var result: string = deepcopy(self[active_type][sec_name])
-        -> map((_, subitem): string => self.component->has_key(subitem)
-            ? GetComponentContent(self.component[subitem], subitem)
-            : '')
-        -> filter((_, subitem): bool => !!subitem)
-        -> map((_, subitem): string => subitem)
-        -> join(submargin .. subseparator .. submargin)
-    return result
-enddef
+    def GetMode(mode: string): string
+        return mode(1)[0] ==# 'c'
+            ? 'normal'
+            : mode -> match('REPLACE') != -1
+            ? 'replace'
+            : mode -> match('INSERT') != -1
+            ? 'insert'
+            : mode[0] == 'V' || mode[0] == 'S'
+            ? 'visual'
+            : 'normal'
+    enddef
 
-g:oneline.GetSectionContent = function(GetSectionContent, [g:oneline])
+    def Link(component: dict<any>)
+        Color.Link(this.GetMode(this.GetComponentContent(component)))
+    enddef
 
-export def Statusline(self: dict<any>, active: bool): string
-    var func_name = 'g:oneline.GetSectionContent'
-    var is_active: string = active ? '1' : '0'
-    var result: string = [['a', 'b', 'c'], ['x', 'y', 'z']]
-        -> map((i, half): string => half
-            -> map((_, sec): string => i == 0
-                ? join([
-                '%(', 
-                '%{%' .. func_name .. '(' .. is_active .. ', 1, "' .. sec .. '")%}',
-                self.separator.left .. '%)'
-                ], self.separator.margin)
-                : join([
-                '%(' .. self.separator.right,
-                '%{%' .. func_name .. '(' .. is_active .. ', 0, "' .. sec .. '")%}',
-                '%)'
-                ], self.separator.margin))
-            -> join(''))
-        -> join('%=')
-    # echom result
-    return result
-enddef
+    def GetSectionColor(is_active: bool, section: string): string
+        var color: string = Color.GetSecHlGroup(is_active, section)
+        return ['%#', color, '#'] -> join('')
+    enddef
 
-# export def OldStatusline(config: dict<any>, active: bool): string
-#     var sections = deepcopy(active ? config.active : config.inactive)
-#     var margin = config.separator.margin
-#     var submargin = config.subseparator.margin
+    def GetSepratorColor(is_active: bool, sections: list<string>): string
+        var color: string = Color.GetSepHlGroup(is_active, sections)
+        return ['%#', color, '#'] -> join('')
+    enddef
 
-#     var result: string = [['a', 'b', 'c'], ['x', 'y', 'z']]
-#         -> map((i, half): string => half
-#             -> map((_, sec): string => sections[join(['oneline', sec], '_')]
-#                 -> map((_, subitem): string => config.component->has_key(subitem) 
-#                     ? GetComponentContent(config.component[subitem], subitem)
-#                     : '')
-#                 -> filter((_, subitem): bool => len(subitem) > 0)
-#                 -> map((_, subitem): string => submargin .. subitem .. submargin)
-#                 -> join(i == 0 ? config.subseparator.left : config.subseparator.right))
-#             -> filter((_, sec): bool => !!sec)
-#             -> map((_, sec): string => margin .. sec .. margin)
-#             # -> map((_, sec): string => GetSectionHighlightName(sec) .. margin .. sec .. margin)
-#             -> join(i == 0 ? config.separator.left : config.separator.right))
-#         -> join('%=')
+    def SeparatorValidUpdate()
+        this.separator_valid.a = !!this.section_content.b ? 'b' : !!this.section_content.c ? 'c' : 'm'
+        this.separator_valid.b = !!this.section_content.c ? 'c' : 'm'
+        this.separator_valid.c = 'm'
+        this.separator_valid.x = 'm'
+        this.separator_valid.z = !!this.section_content.y ? 'y' : !!this.section_content.x ? 'x' : 'm'
+        this.separator_valid.y = !!this.section_content.x ? 'x' : 'm'
+        # echom this.separator_valid
+    enddef
 
-#     # echom result
-#     return result
-# enddef
+    def GetComponentContent(component: dict<any>): string
+        var content_type: any = type(component.content)
+        return content_type == v:t_string
+            ? component.content
+            : content_type == v:t_func
+            ? component.content()
+            : ' '
+    enddef
+    
+    def GetSectionContent(config: dict<any>, is_active: bool, is_left: bool, section: string): string
+        var active_type: string = is_active ? 'active' : 'inactive'
+        var sec_name: string = 'oneline_' .. section
+        var submargin: string = config.subseparator.margin
+        var subseparator: string = is_left ? config.subseparator.left : config.subseparator.right
+        var result: string = deepcopy(config[active_type][sec_name])
+            -> map((_, subitem): string => config.components->has_key(subitem)
+                ? this.GetComponentContent(config.components[subitem])
+                : '')
+            -> filter((_, subitem): bool => !!subitem)
+            -> map((_, subitem): string => subitem)
+            -> join(submargin .. subseparator .. submargin)
+
+        var hlname: string = this.GetSectionColor(is_active, section)
+        if !!result
+            # return (is_left ? [hlname .. '%(', result, '%)' .. config.separator.left]
+            #                 : [hlname .. config.separator.right .. '%(', result, '%)'])
+            #         -> join(config.separator.margin)
+            return [hlname .. '%(', result, '%)'] -> join(config.separator.margin)
+        endif
+        return result
+    enddef
+
+    def GetSepratorContent(config: dict<any>, is_active: bool, is_left: bool, section: string): string
+        var hlname: string = this.GetSepratorColor(is_active, [section, this.separator_valid[section]])
+        var separator: string = is_left ? config.separator.left : config.separator.right
+        return !!this.section_content[section] ? [hlname, separator] -> join('') : ''
+    enddef
+
+    def MergeSectionSeparatorContent(is_left: bool, section: string): string
+        var sec_content: string = this.section_content[section] 
+        var sep_content: string = this.separator_content[section]
+        var result: string = (is_left ? [sec_content, sep_content] : [sep_content, sec_content]) -> join('')
+        return result
+    enddef
+
+    def Set(config: dict<any>, active: bool): string
+        this.count += 1
+        # echom this.count
+        # echom this.section_content
+        
+        for [l, r] in this.sections 
+            this.section_content[l] = this.GetSectionContent(config, active, 1, l)
+            this.section_content[r] = this.GetSectionContent(config, active, 0, r)
+        endfor
+        # echom this.separator_content
+        this.Link(config.components.mode)
+
+        this.SeparatorValidUpdate()
+        # echom this.separator_valid
+        for [l, r] in this.sections
+            this.separator_content[l] = this.GetSepratorContent(config, active, 1, l)
+            this.separator_content[r] = this.GetSepratorContent(config, active, 0, r)
+        endfor
+        this.status_line = [['a', 'b', 'c'], ['x', 'y', 'z']]
+            -> map((i, half): string => half
+                # -> map((_, sec): string => this.section_content[sec])
+                -> map((_, sec): string => i == 0
+                    ? this.MergeSectionSeparatorContent(1, sec)
+                    : this.MergeSectionSeparatorContent(0, sec))
+                    # ? [this.section_content[sec], this.separator_content[sec]] -> join('')
+                    # : [this.separator_content[sec], this.section_content[sec]] -> join(''))
+                    # ? this.GetSectionContent(config, active, 1, sec)
+                    # : this.GetSectionContent(config, active, 0, sec))
+                -> join(''))
+            -> join('%#Oneline_Middle#%=')
+
+        # echom this.status_line
+        return this.status_line
+    enddef
+endclass
+
+export final Statusline = StatusLine.new()
