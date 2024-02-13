@@ -117,7 +117,7 @@ def LinkSepratorColor(mode: string)
 enddef
 
 export def Link(mode: string)
-    SetHighlightGroup(default_theme)
+    SetHighlightGroup(&background == 'dark' ? default_theme.dark : default_theme.light)
     LinkSectionColor(mode)
     LinkSepratorColor(mode)
 enddef
