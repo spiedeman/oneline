@@ -3,7 +3,7 @@ vim9script
 import autoload './colorscheme.vim' as Color
 
 class StatusLine 
-    var sections: list<string> = [['a', 'z'], ['b', 'y'], ['c', 'x']]
+    var sections: list<list<string>> = [['a', 'z'], ['b', 'y'], ['c', 'x']]
     var section_content: dict<string> = {}
     var separator_valid: dict<string> = {}
     var separator_content: dict<string> = {}
